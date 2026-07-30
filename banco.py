@@ -14,3 +14,11 @@ def salvar_lote(dados_lote):
 
 def buscar_historico(usuario_id):
     pass
+
+
+if __name__ == "__main__":
+    criar_banco()
+    # Exemplo de uso das funções
+    salvar_usuario("usuario1", "senha123")
+    usuario = buscar_usuario("usuario1", "senha123")
+    print(usuario)
