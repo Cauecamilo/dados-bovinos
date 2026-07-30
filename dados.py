@@ -17,7 +17,7 @@ RACAS = {
         "rendimento_min": 0.45, "rendimento_max": 0.48
     },
 }
-CUSTO_VACINA_AFTOSA = 0
+CUSTO_VACINA_AFTOSA = 12
 PERDA_TRANSPORTE_PADRAO = 0
 FUNRURAL_PF = 0
 FUNRURAL_PJ = 0
