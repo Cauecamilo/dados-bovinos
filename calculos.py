@@ -5,16 +5,21 @@ from banco import *
 
 # Cálculos de peso e carcaça
 def calcular_peso_carcaca(peso_vivo, rendimento_percentual):
-    pass
+    peso_carcaca = peso_vivo * (rendimento_percentual / 100)
+    return peso_carcaca
 
 def calcular_arrobas(peso_carcaca):
-    pass
+    arrobas = peso_carcaca / 15
+    return arrobas
 
-def calcular_perda_transporte(peso_vivo, horas_viagem):
-    pass
+def calcular_perda_transporte(peso_vivo, horas_totais):
+    taxa_perda_hora = 0.005 #O valor da taxa de perda por hora não se tem um valor exato, pois vária de acordo com vários outros fatores, então pesquisei e coloquei um valor padrão fixo.
+    perda_transporte = peso_vivo * taxa_perda_hora * horas_totais
+    return perda_transporte
 
 def estimar_peso_final(peso_inicial, gmd, dias):
-    pass
+    peso_final = peso_inicial + (gmd * dias)
+    return peso_final
 
 # Cálculos financeiros
 def calcular_receita_bruta(arrobas, preco_arroba):
