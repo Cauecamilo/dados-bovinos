@@ -38,13 +38,16 @@ def menu_principal():
 def menu_lote():
     print("\n===== CADASTRO DO LOTE =====")
 
-    racas_validas = list(RACAS.keys())
+    racas_validas = {raca.lower(): raca for raca in RACAS.keys()}
     raca = ""
-    while raca not in racas_validas:
-        print(f"Raças disponíveis: {', '.join(racas_validas)}")
-        raca = input("Digite a raça: ").strip()
-        if raca not in racas_validas:
+    while True:
+        print(f"Raças disponíveis: {', '.join(RACAS.keys())}")
+        entrada_raca = input("Digite a raça: ").strip()
+        raca = racas_validas.get(entrada_raca.lower())
+        if raca is None:
             print("Raça inválida.")
+        else:
+            break
 
     categorias_validas = ["boi", "novilha", "vaca"]
     categoria = ""
