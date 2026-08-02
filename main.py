@@ -90,11 +90,15 @@ def menu_lote():
 
     racas_validas = list(RACAS.keys())
     raca = ""
-    while raca not in racas_validas:
+    while True:
         print(f"Raças disponíveis: {', '.join(racas_validas)}")
-        raca = input("Digite a raça: ").strip()
-        if raca not in racas_validas:
+        raca_digitada = input("Digite a raça: ").strip()
+        raca = next((nome for nome in racas_validas if nome.lower() == raca_digitada.lower()), None)
+
+        if raca is None:
             print("Raça inválida.")
+        else:
+            break
 
     categorias_validas = ["boi", "novilha", "vaca"]
     categoria = ""
