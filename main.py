@@ -1,3 +1,4 @@
+import banco
 from calculos import *
 from dados import *
 from banco import *
@@ -7,7 +8,7 @@ def iniciar_sistema():
     print("  BEM-VINDO AO SISTEMA DE GESTÃO PECUÁRIA ")
     print("===========================================")
 
-    # fazer_login() — aguardando banco.py
+    usuario_id = fazer_login_ou_cadastro()
 
     opcao = ""
     while opcao != "3":
@@ -16,10 +17,10 @@ def iniciar_sistema():
         if opcao == "1":
             lote = menu_lote()
             lista_gastos = menu_gastos()        # Alan vai retornar lista_gastos
-            menu_venda(lote, lista_gastos)      # passa lista_gastos pro menu_venda
+            menu_venda(lote, lista_gastos, usuario_id)      # passa lista_gastos pro menu_venda
 
         elif opcao == "2":
-            menu_historico()             # consultar_historico — aguardando banco.py
+            menu_historico(usuario_id)             # consultar_historico — aguardando banco.py
 
         elif opcao == "3":
             print("Encerrando o sistema. Até logo!")
@@ -27,6 +28,55 @@ def iniciar_sistema():
         else:
             print("Opção inválida. Digite 1, 2 ou 3.")
 
+
+def fazer_login_ou_cadastro():
+    while True:
+        print("\n1. Fazer login")
+        print("2. Cadastrar novo usuário")
+        print("3. Sair")
+        opcao = input("Escolha uma opção: ")
+
+        if opcao == "1":
+            email = input("Email: ")
+            senha = input("Senha: ")
+            usuario = banco.buscar_usuario(email, senha)
+            tentativas = 1
+            while usuario is None and tentativas < 3:
+                email = input("Email: ")
+                senha = input("Senha: ")
+                usuario = banco.buscar_usuario(email, senha)
+                tentativas += 1
+
+            if usuario is None:
+                print("Número máximo de tentativas excedido. Voltando ao menu...")
+                continue  # volta pro topo do while True (mostra o menu 1/2/3 de novo)
+
+            return usuario[0]
+
+        elif opcao == "2":
+            nome = input("Nome: ")
+            email = input("Email: ")
+            senha = input("Senha: ")
+            banco.salvar_usuario(nome, email, senha)
+            usuario = banco.buscar_usuario(email, senha)
+            return usuario[0]
+
+        elif opcao == "3":
+            print("Encerrando o sistema. Até logo!")
+            exit()
+
+        else:
+            print("Opção inválida.")
+            continue
+
+    else:
+        nome = input("Nome: ")
+        email = input("Email: ")
+        senha = input("Senha: ")
+        banco.salvar_usuario(nome, email, senha)
+        usuario = banco.buscar_usuario(email, senha)
+        return usuario[0]
+    
 def menu_principal():
     print("\n===== MENU PRINCIPAL =====")
     print("1. Cadastrar novo lote")
@@ -108,7 +158,7 @@ def menu_lote():
 def menu_gastos():
     pass  # Alan
 
-def menu_venda(lote, lista_gasto):
+def menu_venda(lote, lista_gastos, usuario_id):
     print("\n===== DADOS DA VENDA =====")
 
     peso_venda = 0
@@ -211,10 +261,15 @@ def menu_venda(lote, lista_gasto):
     exibir_resumo_lote(resultados)
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
-    salvar_resultado(resultados)
+    salvar_resultado(resultados, usuario_id)
 
-def menu_historico():
-    # aguardando banco.py
-    print("Histórico disponível em breve.")
-
+def menu_historico(usuario_id):
+    historico = banco.buscar_historico(usuario_id)
+    if not historico:
+        print("Nenhum lote registrado ainda.")
+        return
+    print("\n===== HISTÓRICO DE LOTES =====")
+    for raca, categoria, quantidade, lucro_liquido, data in historico:
+        print(f"{data} — {quantidade}x {raca} ({categoria}) — Lucro líquido: R$ {lucro_liquido:.2f}")
+        
 iniciar_sistema()
