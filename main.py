@@ -49,7 +49,7 @@ def fazer_login_ou_cadastro():
 
             if usuario is None:
                 print("Número máximo de tentativas excedido. Voltando ao menu...")
-                continue  # volta pro topo do while True (mostra o menu 1/2/3 de novo)
+                continue
 
             return usuario[0]
 
@@ -59,6 +59,9 @@ def fazer_login_ou_cadastro():
             senha = input("Senha: ")
             banco.salvar_usuario(nome, email, senha)
             usuario = banco.buscar_usuario(email, senha)
+            if usuario is None:
+                print("Não foi possível concluir o cadastro.")
+                continue
             return usuario[0]
 
         elif opcao == "3":
@@ -68,14 +71,6 @@ def fazer_login_ou_cadastro():
         else:
             print("Opção inválida.")
             continue
-
-    else:
-        nome = input("Nome: ")
-        email = input("Email: ")
-        senha = input("Senha: ")
-        banco.salvar_usuario(nome, email, senha)
-        usuario = banco.buscar_usuario(email, senha)
-        return usuario[0]
     
 def menu_principal():
     print("\n===== MENU PRINCIPAL =====")
@@ -160,7 +155,20 @@ def menu_lote():
     return lote
 
 def menu_gastos():
-    pass  # Alan
+    print("\n===== GASTOS DE CRIAÇÃO =====")
+
+    try:
+        alimentacao = float(input("Custo total de alimentação (R$): "))
+        vacinas = float(input("Custo com vacinas obrigatórias (R$): "))
+        medicamentos = float(input("Custo com medicamentos opcionais (R$): "))
+        frete = float(input("Custo com frete (R$): "))
+        mao_de_obra = float(input("Custo com mão de obra (R$): "))
+        documentacao = float(input("Custos com documentação e taxas (R$): "))
+    except:
+        print("Digite apenas números válidos para os gastos.")
+        return [0, 0, 0, 0, 0, 0]
+
+    return [alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao]
 
 def menu_venda(lote, lista_gastos, usuario_id):
     print("\n===== DADOS DA VENDA =====")
@@ -235,6 +243,18 @@ def menu_venda(lote, lista_gastos, usuario_id):
                 print("Digite apenas números.")
 
     total_refugo = registrar_refugo(qtd_refugo, valor_refugo)
+    rendimento_medio = (lote["rendimento_min"] + lote["rendimento_max"]) / 2
+    peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
+    arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
+
+    receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
+    total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
+    receita_liquida = calcular_receita_liquida(receita_bruta, total_impostos)
+    gastos_totais = calcular_total_gastos(lista_gastos)
+    custo_total = calcular_custo_total(lote["custo_compra_total"], lista_gastos)
+    lucro_liquido = calcular_lucro_liquido(receita_liquida, custo_total)
+    lucro_por_cabeca = calcular_lucro_por_cabeca(lucro_liquido, lote["quantidade"])
+    ponto_equilibrio = calcular_ponto_equilibrio(custo_total, arrobas_totais)
 
     resultados = {
         # dados do lote
@@ -251,15 +271,15 @@ def menu_venda(lote, lista_gastos, usuario_id):
         "qtd_refugo":         qtd_refugo,
         "valor_refugo":       valor_refugo,
         "total_refugo":       total_refugo,
-        # resultados financeiros — Alan preenche
-        "receita_bruta":      0,
-        "total_impostos":     0,
-        "receita_liquida":    0,
-        "gastos_totais":      0,
-        "custo_total":        0,
-        "lucro_liquido":      0,
-        "lucro_por_cabeca":   0,
-        "ponto_equilibrio":   0,
+        # resultados financeiros
+        "receita_bruta":      receita_bruta,
+        "total_impostos":     total_impostos,
+        "receita_liquida":    receita_liquida,
+        "gastos_totais":      gastos_totais,
+        "custo_total":        custo_total,
+        "lucro_liquido":      lucro_liquido,
+        "lucro_por_cabeca":   lucro_por_cabeca,
+        "ponto_equilibrio":   ponto_equilibrio,
     }
 
     exibir_resumo_lote(resultados)
@@ -275,5 +295,7 @@ def menu_historico(usuario_id):
     print("\n===== HISTÓRICO DE LOTES =====")
     for raca, categoria, quantidade, lucro_liquido, data in historico:
         print(f"{data} — {quantidade}x {raca} ({categoria}) — Lucro líquido: R$ {lucro_liquido:.2f}")
-        
-iniciar_sistema()
+
+
+if __name__ == "__main__":
+    iniciar_sistema()

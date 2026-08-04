@@ -1,3 +1,4 @@
+import banco as banco_db
 from dados import *
 from banco import *
 
@@ -23,41 +24,47 @@ def estimar_peso_final(peso_inicial, gmd, dias):
 
 # Cálculos financeiros
 def calcular_receita_bruta(arrobas, preco_arroba):
-    pass
+    return arrobas * preco_arroba
 
 def calcular_receita_liquida(receita_bruta, total_impostos):
-    pass
+    return receita_bruta - total_impostos
 
 def calcular_lucro_liquido(receita_liquida, gastos_totais):
-    pass
+    return receita_liquida - gastos_totais
 
 def calcular_ponto_equilibrio(gastos_totais, total_arrobas):
-    pass
+    if total_arrobas <= 0:
+        return 0
+    return gastos_totais / total_arrobas
 
 def calcular_lucro_por_cabeca(lucro_liquido, qtd_animais):
-    pass
+    if qtd_animais <= 0:
+        return 0
+    return lucro_liquido / qtd_animais
 
 # Gastos de criação
 def registrar_gasto_alimentacao(qtd_animais, dias, custo_diario):
-    pass
+    return qtd_animais * dias * custo_diario
 
 def registrar_vacinas_obrigatorias(qtd_animais):
-    pass
+    return qtd_animais * CUSTO_VACINA_AFTOSA
 
 def registrar_medicamentos_opcionais(descricao, valor):
-    pass
+    return valor
 
 def registrar_frete(valor):
-    pass
+    return valor
 
 def registrar_mao_de_obra(valor):
-    pass
+    return valor
 
 def registrar_documentacao(custo_gta, outros):
-    pass
+    return custo_gta + outros
 
 def calcular_total_gastos(lista_gastos):
-    pass
+    if not lista_gastos:
+        return 0
+    return sum(lista_gastos)
 
 
 # ── CAUÊ ──
@@ -159,16 +166,16 @@ def exibir_alerta_lucro(lucro, ponto_equilibrio):
         print("NO LIMITE — sem lucro nem prejuízo.")
     print("==============================")
 
-# Histórico — aguardando banco.py
-def salvar_resultado(dados_lote):
-    pass
+# Histórico
+def salvar_resultado(dados_lote, usuario_id):
+    return banco_db.salvar_resultado(dados_lote, usuario_id)
 
 def consultar_historico(usuario_id):
-    pass
+    return banco_db.buscar_historico(usuario_id)
 
-# Autenticação — aguardando banco.py
-def cadastrar_usuario(nome, senha):
-    pass
+# Autenticação
+def cadastrar_usuario(nome, email, senha):
+    return salvar_usuario(nome, email, senha)
 
-def fazer_login(nome, senha):
-    return True  # temporário até banco estar pronto
+def fazer_login(email, senha):
+    return buscar_usuario(email, senha)
