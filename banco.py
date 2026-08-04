@@ -205,9 +205,10 @@ def salvar_lote(dados_lote):
 
 def buscar_historico(usuario_id):
     cursor.execute("""
-        SELECT raca, categoria, quantidade, lucro_liquido, data FROM resultados_lote
+        SELECT raca, categoria, quantidade, lucro_liquido, data_registro
+        FROM resultados_lote
         WHERE usuario_id = ?
-        ORDER BY data DESC
+        ORDER BY data_registro DESC
     """, (usuario_id,))
     return cursor.fetchall()
 
