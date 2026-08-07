@@ -2,6 +2,10 @@ import banco
 from calculos import *
 from dados import *
 from banco import *
+import os
+from dotenv import load_dotenv
+from google import genai
+
 
 def iniciar_sistema():
     print("===========================================")
@@ -152,6 +156,10 @@ def menu_lote():
     print(f"Arrobas totais do lote:      {estimativa['arrobas_estimadas'] * quantidade:.1f} @")
     print("===============================")
 
+    # guarda a meta de peso de carcaça no próprio lote, para poder
+    # comparar depois com o peso real de venda (usado na análise de IA)
+    lote["peso_carcaca_estimado"] = estimativa["peso_carcaca_estimado"]
+
     return lote
 
 def menu_gastos():
@@ -247,6 +255,16 @@ def menu_venda(lote, lista_gastos, usuario_id):
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
 
+    # ===== ANÁLISE DE IA =====
+    # Compara o peso de carcaça realmente obtido na venda com a meta
+    # estimada lá no cadastro do lote (ambos em kg). Só chama a IA
+    # quando o resultado ficou abaixo do esperado.
+    resultado_ia = analise_ia(peso_carcaca, lote["raca"], lote["peso_carcaca_estimado"])
+    if resultado_ia:
+        print("\n===== ANÁLISE DA IA =====")
+        print(resultado_ia)
+        print("===========================")
+
     receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
     total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
     receita_liquida = calcular_receita_liquida(receita_bruta, total_impostos)
@@ -286,6 +304,55 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+
+
+
+# Carrega a chave contida no arquivo .env para a memória
+load_dotenv()
+
+def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca):
+    """
+    Gera uma análise da IA quando o peso de carcaça obtido na venda
+    ficou abaixo da meta estimada no cadastro do lote.
+
+    peso_carcaca:      peso de carcaça real, obtido na venda (kg)
+    raca_boi:          raça do lote
+    meta_peso_carcaca: peso de carcaça estimado no cadastro do lote (kg)
+    """
+    if peso_carcaca < meta_peso_carcaca:
+        diferenca_meta = meta_peso_carcaca - peso_carcaca
+
+        prompt = f"""
+            Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
+
+            DADOS PARA ANÁLISE:
+            - Raça do gado: {raca_boi}
+            - Peso de carcaça obtido: {peso_carcaca:.2f} kg
+            - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
+            - Déficit de peso: {diferenca_meta:.2f} kg
+
+            TAREFA:
+            1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
+            2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
+            3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
+            4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
+
+            Responda de forma técnica, direta e em tópicos.
+            """
+        try:
+            # O cliente lê automaticamente a GEMINI_API_KEY do ambiente carregado pelo dotenv
+            client = genai.Client()
+            resposta = client.models.generate_content(
+                model='gemini-3.6-flash',
+                contents=prompt
+            )
+            return resposta.text
+
+        except Exception as e:
+            return f"Erro na API do Gemini: {e}"
+
+    # peso dentro ou acima da meta: nenhuma análise necessária
+    return None
 
 def menu_historico(usuario_id):
     historico = banco.buscar_historico(usuario_id)
