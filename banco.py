@@ -18,81 +18,8 @@ def criar_banco():
 """);
     
 
-# ESSA TABELA SERVE PARA SABERMOS OS TIPOS DE RAÇAS EXISTENTES E O PERCENTUAL DE CADA UM
-    cursor.execute (""" CREATE TABLE IF NOT EXISTS racas_bovinas (
-    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome                        TEXT NOT NULL UNIQUE,
-    rendimento_carcaca_esperado REAL,
-    observacoes                 TEXT)""");
 
-
-# ESSA TABELA SERVE PARA ANOTARMOS OS TIPOS DE GASTOS
-    cursor.execute ("""CREATE TABLE IF NOT EXISTS categorias_gasto (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome    TEXT NOT NULL UNIQUE)""")
-
-
-# ESSA TABELA SERVE COMO UM REGISTRO GERAL DE CADA ANIMAL
-    cursor.execute ("""CREATE TABLE IF NOT EXISTS animais (
-    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-    identificador           TEXT,
-    raca_id                 INTEGER,
-    tipo                    TEXT NOT NULL CHECK (tipo IN ('boi', 'novilha', 'vaca')),
-    usuario_id              INTEGER NOT NULL,
-    data_entrada            TEXT,
-    status                  TEXT DEFAULT 'ativo' CHECK (status IN ('ativo', 'vendido', 'morto')),
-    tempo_estimado_criacao  INTEGER,
-    FOREIGN KEY (raca_id) REFERENCES racas_bovinas (id),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios (id))""")
-
-
-#ESSA TABELA SERVE PARA A CRIAÇAO DE CADA LOTE
-    cursor.execute ("""CREATE TABLE IF NOT EXISTS lotes (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome            TEXT,
-    usuario_id      INTEGER NOT NULL,
-    data_criacao    TEXT NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios (id))""")
-
-
-#ESSA TABELA SERVE PARA OS DADOS DE COMPRA
-    cursor.execute("""CREATE TABLE IF NOT EXISTS compras (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    animal_id       INTEGER,
-    data            TEXT,
-    peso_compra     REAL,
-    valor_pago      REAL,
-    fornecedor      TEXT,
-    FOREIGN KEY (animal_id) REFERENCES animais (id))""")
-
-#ESSA TABELA SERVE PARA SABERMOS OS DADOS DA VENDA DOS ANIMAIS
-    cursor.execute ("""CREATE TABLE IF NOT EXISTS vendas (
-    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-    animal_id               INTEGER,
-    data                     TEXT,
-    peso_venda               REAL,
-    valor_recebido           REAL,
-    valor_arroba_na_venda    REAL,
-    FOREIGN KEY (animal_id) REFERENCES animais (id))""")
-
-    cursor.execute("""CREATE TABLE IF NOT EXISTS dietas (
-    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome                TEXT NOT NULL,
-    descricao           TEXT,
-    ganho_esperado_dia  REAL,
-    fonte_cientifica    TEXT)""")
-
-#ESSA TABELA SERVE PARA SABERMOS QUAL FOI O TIPO DE DIETA SEGUIDA POR CADA LOTE
-    cursor.execute("""CREATE TABLE IF NOT EXISTS lote_dietas (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    lote_id       INTEGER NOT NULL,
-    dieta_id        INTEGER NOT NULL,
-    data_inicio     TEXT,
-    data_fim        TEXT,
-    FOREIGN KEY (lote_id) REFERENCES lotes (id),
-    FOREIGN KEY (dieta_id) REFERENCES dietas (id))""")
-
-
+#ESSA TABELA SERVE PARA SALVARMOS OS RESULTADOS DE CADA LOTE, PARA QUE POSSAMOS TER UM HISTÓRICO DE CADA UM
     cursor.execute("""CREATE TABLE IF NOT EXISTS resultados_lote (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     usuario_id          INTEGER NOT NULL,
@@ -119,6 +46,7 @@ def criar_banco():
     data_registro       TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (usuario_id) REFERENCES usuarios (id))""")
 
+    cursor.execute("DROP TABLE IF EXISTS racas_bovinas;")
 
     conexao.commit()
 
@@ -149,33 +77,6 @@ def buscar_usuario(email, senha):
         print("Email ou senha incorretos.")
         return None
 
-def salvar_raca(nome, rendimento_carcaca_esperado=None, observacoes=None):
-    try:
-        cursor.execute(
-            "INSERT INTO racas_bovinas (nome, rendimento_carcaca_esperado, observacoes) VALUES (?, ?, ?)",
-            (nome, rendimento_carcaca_esperado, observacoes)
-        )
-        conexao.commit()
-        print(f"Raça '{nome}' cadastrada com sucesso!")
-    except sqlite3.IntegrityError:
-        print("Essa raça já está cadastrada.")
-
-def listar_racas():
-    cursor.execute("SELECT id, nome, rendimento_carcaca_esperado, observacoes FROM racas_bovinas")
-    return cursor.fetchall()
-
-def salvar_categoria_gasto(nome):
-    try:
-        cursor.execute("INSERT INTO categorias_gasto (nome) VALUES (?)", (nome,))
-        conexao.commit()
-        print(f"Categoria '{nome}' cadastrada com sucesso!")
-    except sqlite3.IntegrityError:
-        print("Essa categoria já existe.")
-
-def listar_categorias_gasto():
-    cursor.execute("SELECT id, nome FROM categorias_gasto")
-    return cursor.fetchall()
-
 def salvar_resultado(resultados, usuario_id):
     cursor.execute("""
         INSERT INTO resultados_lote (
@@ -198,11 +99,6 @@ def salvar_resultado(resultados, usuario_id):
     conexao.commit()
     print("Resultado do lote salvo com sucesso no histórico!")
 
-
-
-def salvar_lote(dados_lote):
-    pass
-
 def buscar_historico(usuario_id):
     cursor.execute("""
         SELECT raca, categoria, quantidade, lucro_liquido, data_registro
@@ -211,6 +107,5 @@ def buscar_historico(usuario_id):
         ORDER BY data_registro DESC
     """, (usuario_id,))
     return cursor.fetchall()
-
 
 criar_banco()
