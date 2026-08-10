@@ -11,20 +11,16 @@ def iniciar_sistema():
     print("===========================================")
     print("  BEM-VINDO AO SISTEMA DE GESTÃO PECUÁRIA ")
     print("===========================================")
-
     usuario_id = fazer_login_ou_cadastro()
-
     opcao = ""
+
     while opcao != "3":
         opcao = menu_principal()
 
         if opcao == "1":
-            lote = menu_lote()
-            lista_gastos = menu_gastos()        # Alan vai retornar lista_gastos
-            menu_venda(lote, lista_gastos, usuario_id)      # passa lista_gastos pro menu_venda
-
+            sub_menu_lote(usuario_id)   
         elif opcao == "2":
-            menu_historico(usuario_id)             # consultar_historico — aguardando banco.py
+            menu_historico(usuario_id)
 
         elif opcao == "3":
             print("Encerrando o sistema. Até logo!")
@@ -78,11 +74,76 @@ def fazer_login_ou_cadastro():
     
 def menu_principal():
     print("\n===== MENU PRINCIPAL =====")
-    print("1. Cadastrar novo lote")
+    print("1. Menu Lote")
     print("2. Ver histórico")
     print("3. Sair")
     opcao = input("Escolha uma opção: ")
     return opcao
+
+def sub_menu_lote(usuario_id):
+    lote = None
+    lista_gastos = []
+    venda_realizada = False
+    opcao = ""
+
+    while opcao != "6":
+        print("\n===== LOTE =====")
+        print("1. Cadastrar Lote")
+        print("2. Ver Estimativa")
+        print("3. Registrar Gastos")
+        print("4. Registrar Venda")
+        print("5. Análise da IA")
+        print("6. Voltar")
+        opcao = input("Escolha uma opção: ")
+
+        if opcao == "1":
+            lote = menu_lote()
+            print("Lote cadastrado!")
+
+        elif opcao == "2":
+            if lote is None:
+                print("Cadastre o lote primeiro (opção 1).")
+            else:
+                exibir_estimativa(lote)
+
+        elif opcao == "3":
+            if lote is None:
+                print("Cadastre o lote primeiro (opção 1).")
+            else:
+                lista_gastos = menu_gastos()
+
+        elif opcao == "4":
+            if lote is None:
+                print("Cadastre o lote primeiro (opção 1).")
+            elif not lista_gastos:
+                print("Registre os gastos primeiro (opção 3).")
+            elif venda_realizada:
+                print("Venda já registrada para este lote.")
+            else:
+                menu_venda(lote, lista_gastos, usuario_id)
+                venda_realizada = True
+
+        elif opcao == "5":
+            if not venda_realizada:
+                print("Registre a venda primeiro (opção 4).")
+            else:
+                meta = lote.get("peso_carcaca_estimado", None)
+                if meta is None:
+                    print("Estime o lote primeiro (opção 2) antes de analisar.")
+                else:
+                    resultado = analise_ia(lote["peso_carcaca_real"], lote["raca"], meta)
+                    if resultado:
+                        print("\n===== ANÁLISE DA IA =====")
+                        print(resultado)
+                        print("===========================")
+                    else:
+                        print("O peso de carcaça ficou dentro ou acima da meta. Nenhuma análise necessária.")
+
+        elif opcao == "6":
+            print("Voltando ao menu principal...")
+
+        else:
+            print("Opção inválida.")
 
 def menu_lote():
     print("\n===== CADASTRO DO LOTE =====")
@@ -144,22 +205,6 @@ def menu_lote():
 
     lote = cadastrar_lote(raca, categoria, quantidade, peso_compra, preco_compra)
     lote["dias_criacao"] = dias
-
-    # exibe estimativa
-    estimativa = estimar_resultado_lote(lote, dias)
-    print("\n===== ESTIMATIVA DO LOTE =====")
-    print(f"Ganho médio diário estimado: {estimativa['gmd_medio']:.2f} kg/dia")
-    print(f"Rendimento médio esperado:   {estimativa['rendimento_medio']*100:.1f}%")
-    print(f"Peso final estimado:         {estimativa['peso_final_estimado']:.1f} kg por animal")
-    print(f"Peso de carcaça estimado:    {estimativa['peso_carcaca_estimado']:.1f} kg por animal")
-    print(f"Arrobas estimadas por animal:{estimativa['arrobas_estimadas']:.1f} @")
-    print(f"Arrobas totais do lote:      {estimativa['arrobas_estimadas'] * quantidade:.1f} @")
-    print("===============================")
-
-    # guarda a meta de peso de carcaça no próprio lote, para poder
-    # comparar depois com o peso real de venda (usado na análise de IA)
-    lote["peso_carcaca_estimado"] = estimativa["peso_carcaca_estimado"]
-
     return lote
 
 def menu_gastos():
@@ -208,63 +253,20 @@ def menu_venda(lote, lista_gastos, usuario_id):
 
     opcoes_estado = ["SIM", "NAO"]
     mesmo_estado = ""
-    aliquota_icms = 0
+
     while mesmo_estado not in opcoes_estado:
         mesmo_estado = input("A venda é para dentro do mesmo estado? (SIM/NAO): ").upper()
         if mesmo_estado not in opcoes_estado:
             print("Digite SIM ou NAO.")
+
     if mesmo_estado == "NAO":
-        while aliquota_icms <= 0:
-            try:
-                aliquota_icms = float(input("Alíquota do ICMS do seu estado (%): "))
-                if aliquota_icms <= 0:
-                    print("Digite um valor maior que zero.")
-            except:
-                print("Digite apenas números.")
+        aliquota_icms = ICMS_INTERESTADUAL
+    else:
+        aliquota_icms = 0
 
-    dias_transporte = 0
-    while dias_transporte <= 0:  # CORREÇÃO: adicionada validação
-        try:
-            dias_transporte = int(input("Dias de transporte até o frigorífico: "))
-            if dias_transporte <= 0:
-                print("Digite um número maior que zero.")
-        except:
-            print("Digite apenas números inteiros.")
-
-    qtd_refugo = -1
-    while qtd_refugo < 0:
-        try:
-            qtd_refugo = int(input("Quantidade de animais refugo (0 se nenhum): "))
-            if qtd_refugo < 0:
-                print("Digite 0 ou um número positivo.")
-        except:
-            print("Digite apenas números inteiros.")
-
-    valor_refugo = 0
-    if qtd_refugo > 0:
-        while valor_refugo <= 0:
-            try:
-                valor_refugo = float(input("Valor recebido por cada animal refugo (R$): "))
-                if valor_refugo <= 0:
-                    print("Digite um valor maior que zero.")
-            except:
-                print("Digite apenas números.")
-
-    total_refugo = registrar_refugo(qtd_refugo, valor_refugo)
     rendimento_medio = (lote["rendimento_min"] + lote["rendimento_max"]) / 2
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
-
-    # ===== ANÁLISE DE IA =====
-    # Compara o peso de carcaça realmente obtido na venda com a meta
-    # estimada lá no cadastro do lote (ambos em kg). Só chama a IA
-    # quando o resultado ficou abaixo do esperado.
-    resultado_ia = analise_ia(peso_carcaca, lote["raca"], lote["peso_carcaca_estimado"])
-    if resultado_ia:
-        print("\n===== ANÁLISE DA IA =====")
-        print(resultado_ia)
-        print("===========================")
-
     receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
     total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
     receita_liquida = calcular_receita_liquida(receita_bruta, total_impostos)
@@ -285,10 +287,6 @@ def menu_venda(lote, lista_gastos, usuario_id):
         # dados da venda
         "peso_venda":         peso_venda,
         "preco_arroba":       preco_arroba,
-        "dias_transporte":    dias_transporte,
-        "qtd_refugo":         qtd_refugo,
-        "valor_refugo":       valor_refugo,
-        "total_refugo":       total_refugo,
         # resultados financeiros
         "receita_bruta":      receita_bruta,
         "total_impostos":     total_impostos,
@@ -300,59 +298,11 @@ def menu_venda(lote, lista_gastos, usuario_id):
         "ponto_equilibrio":   ponto_equilibrio,
     }
 
+    lote["peso_carcaca_real"] = peso_carcaca
     exibir_resumo_lote(resultados)
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
-
-
-
-# Carrega a chave contida no arquivo .env para a memória
-load_dotenv()
-
-def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca):
-    """
-    Gera uma análise da IA quando o peso de carcaça obtido na venda
-    ficou abaixo da meta estimada no cadastro do lote.
-
-    peso_carcaca:      peso de carcaça real, obtido na venda (kg)
-    raca_boi:          raça do lote
-    meta_peso_carcaca: peso de carcaça estimado no cadastro do lote (kg)
-    """
-    if peso_carcaca < meta_peso_carcaca:
-        diferenca_meta = meta_peso_carcaca - peso_carcaca
-
-        prompt = f"""
-            Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
-
-            DADOS PARA ANÁLISE:
-            - Raça do gado: {raca_boi}
-            - Peso de carcaça obtido: {peso_carcaca:.2f} kg
-            - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
-            - Déficit de peso: {diferenca_meta:.2f} kg
-
-            TAREFA:
-            1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
-            2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
-            3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
-            4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
-
-            Responda de forma técnica, direta e em tópicos.
-            """
-        try:
-            # O cliente lê automaticamente a GEMINI_API_KEY do ambiente carregado pelo dotenv
-            client = genai.Client()
-            resposta = client.models.generate_content(
-                model='gemini-3.6-flash',
-                contents=prompt
-            )
-            return resposta.text
-
-        except Exception as e:
-            return f"Erro na API do Gemini: {e}"
-
-    # peso dentro ou acima da meta: nenhuma análise necessária
-    return None
 
 def menu_historico(usuario_id):
     historico = banco.buscar_historico(usuario_id)
@@ -365,4 +315,5 @@ def menu_historico(usuario_id):
 
 
 if __name__ == "__main__":
+    load_dotenv()
     iniciar_sistema()
