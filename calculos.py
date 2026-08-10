@@ -2,8 +2,6 @@ import banco as banco_db
 from dados import *
 from banco import *
 
-# ── ALAN ──
-
 # Cálculos de peso e carcaça
 def calcular_peso_carcaca(peso_vivo, rendimento_percentual):
     peso_carcaca = peso_vivo * (rendimento_percentual / 100)
@@ -12,11 +10,6 @@ def calcular_peso_carcaca(peso_vivo, rendimento_percentual):
 def calcular_arrobas(peso_carcaca):
     arrobas = peso_carcaca / 15
     return arrobas
-
-def calcular_perda_transporte(peso_vivo, horas_totais):
-    taxa_perda_hora = 0.005 #O valor da taxa de perda por hora não se tem um valor exato, pois vária de acordo com vários outros fatores, então pesquisei e coloquei um valor padrão fixo.
-    perda_transporte = peso_vivo * taxa_perda_hora * horas_totais
-    return perda_transporte
 
 def estimar_peso_final(peso_inicial, gmd, dias):
     peso_final = peso_inicial + (gmd * dias)
@@ -43,31 +36,10 @@ def calcular_lucro_por_cabeca(lucro_liquido, qtd_animais):
     return lucro_liquido / qtd_animais
 
 # Gastos de criação
-def registrar_gasto_alimentacao(qtd_animais, dias, custo_diario):
-    return qtd_animais * dias * custo_diario
-
-def registrar_vacinas_obrigatorias(qtd_animais):
-    return qtd_animais * CUSTO_VACINA_AFTOSA
-
-def registrar_medicamentos_opcionais(descricao, valor):
-    return valor
-
-def registrar_frete(valor):
-    return valor
-
-def registrar_mao_de_obra(valor):
-    return valor
-
-def registrar_documentacao(custo_gta, outros):
-    return custo_gta + outros
-
 def calcular_total_gastos(lista_gastos):
     if not lista_gastos:
         return 0
     return sum(lista_gastos)
-
-
-# ── CAUÊ ──
 
 # Impostos
 def calcular_funrural(receita_bruta, tipo_produtor):
@@ -113,9 +85,6 @@ def cadastrar_lote(raca, categoria, quantidade, peso_compra, preco_compra):
     }
     return lote
 
-def registrar_refugo(qtd_refugo, valor_refugo):
-    return qtd_refugo * valor_refugo
-
 def estimar_resultado_lote(lote, dias):
     gmd_medio        = (lote["gmd_min"] + lote["gmd_max"]) / 2
     peso_final       = lote["peso_compra"] + (gmd_medio * dias)
@@ -153,8 +122,19 @@ def exibir_resultado_financeiro(resultados):
     print(f"Lucro líquido:       R$ {resultados['lucro_liquido']:.2f}")
     print(f"Lucro por cabeça:    R$ {resultados['lucro_por_cabeca']:.2f}")
     print(f"Ponto de equilíbrio: R$ {resultados['ponto_equilibrio']:.2f} por @")
-    print(f"Animais refugo:      {resultados['qtd_refugo']} (R$ {resultados['total_refugo']:.2f})")
     print("==========================================")
+
+def exibir_estimativa(lote):
+    estimativa = estimar_resultado_lote(lote, lote["dias_criacao"])
+    print("\n===== ESTIMATIVA DO LOTE =====")
+    print(f"Ganho médio diário estimado: {estimativa['gmd_medio']:.2f} kg/dia")
+    print(f"Rendimento médio esperado:   {estimativa['rendimento_medio']*100:.1f}%")
+    print(f"Peso final estimado:         {estimativa['peso_final_estimado']:.1f} kg por animal")
+    print(f"Peso de carcaça estimado:    {estimativa['peso_carcaca_estimado']:.1f} kg por animal")
+    print(f"Arrobas estimadas por animal:{estimativa['arrobas_estimadas']:.1f} @")
+    print(f"Arrobas totais do lote:      {estimativa['arrobas_estimadas'] * lote['quantidade']:.1f} @")
+    print("===============================")
+    lote["peso_carcaca_estimado"] = estimativa["peso_carcaca_estimado"]
 
 def exibir_alerta_lucro(lucro, ponto_equilibrio):
     print("\n========== ANÁLISE ==========")

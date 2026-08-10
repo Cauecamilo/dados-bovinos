@@ -31,10 +31,6 @@ def criar_banco():
     custo_compra_total  REAL,
     peso_venda          REAL,
     preco_arroba        REAL,
-    dias_transporte     INTEGER,
-    qtd_refugo          INTEGER,
-    valor_refugo        REAL,
-    total_refugo        REAL,
     receita_bruta       REAL,
     total_impostos      REAL,
     receita_liquida     REAL,
@@ -81,17 +77,16 @@ def salvar_resultado(resultados, usuario_id):
     cursor.execute("""
         INSERT INTO resultados_lote (
             usuario_id, raca, categoria, quantidade, peso_compra, preco_compra,
-            custo_compra_total, peso_venda, preco_arroba, dias_transporte,
-            qtd_refugo, valor_refugo, total_refugo, receita_bruta, total_impostos,
+            custo_compra_total, peso_venda, preco_arroba,
+            receita_bruta, total_impostos,
             receita_liquida, gastos_totais, custo_total, lucro_liquido,
             lucro_por_cabeca, ponto_equilibrio
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         usuario_id,
         resultados["raca"], resultados["categoria"], resultados["quantidade"],
         resultados["peso_compra"], resultados["preco_compra"], resultados["custo_compra_total"],
-        resultados["peso_venda"], resultados["preco_arroba"], resultados["dias_transporte"],
-        resultados["qtd_refugo"], resultados["valor_refugo"], resultados["total_refugo"],
+        resultados["peso_venda"], resultados["preco_arroba"],
         resultados["receita_bruta"], resultados["total_impostos"], resultados["receita_liquida"],
         resultados["gastos_totais"], resultados["custo_total"], resultados["lucro_liquido"],
         resultados["lucro_por_cabeca"], resultados["ponto_equilibrio"]
