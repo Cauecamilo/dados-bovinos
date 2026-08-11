@@ -289,10 +289,12 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+
+    estimativa = estimar_resultado_lote(lote, lote["dias_criacao"])
     analise_ia(
         peso_carcaca=peso_carcaca,
         raca_boi=lote["raca"],
-        meta_peso_carcaca=lote["peso_carcaca_estimado"],
+        meta_peso_carcaca= estimativa["peso_carcaca_estimado"],
         categoria=lote["categoria"],
     )
 
