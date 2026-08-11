@@ -2,15 +2,15 @@ import banco
 from calculos import *
 from dados import *
 from banco import *
-import os
 from dotenv import load_dotenv
 from google import genai
 
 
 def iniciar_sistema():
-    print("===========================================")
-    print("  BEM-VINDO AO SISTEMA DE GESTÃO PECUÁRIA ")
-    print("===========================================")
+    print("=" * 50)
+    print("SISTEMA DE GESTÃO PECUÁRIA BOVINA".center(50))
+    print("Controle completo do seu rebanho".center(50))
+    print("=" * 50)
     usuario_id = fazer_login_ou_cadastro()
     opcao = ""
 
@@ -31,6 +31,9 @@ def iniciar_sistema():
 
 def fazer_login_ou_cadastro():
     while True:
+        print("\n" + "=" * 50)
+        print("ACESSO AO SISTEMA".center(50))
+        print("=" * 50)
         print("\n1. Fazer login")
         print("2. Cadastrar novo usuário")
         print("3. Sair")
@@ -42,6 +45,7 @@ def fazer_login_ou_cadastro():
             usuario = banco.buscar_usuario(email, senha)
             tentativas = 1
             while usuario is None and tentativas < 3:
+                print(f"Credenciais inválidas. Tentativas restantes: {3 - tentativas}")
                 email = input("Email: ")
                 senha = input("Senha: ")
                 usuario = banco.buscar_usuario(email, senha)
@@ -73,10 +77,13 @@ def fazer_login_ou_cadastro():
             continue
     
 def menu_principal():
-    print("\n===== MENU PRINCIPAL =====")
-    print("1. Menu Lote")
-    print("2. Ver histórico")
+    print("\n" + "=" * 50)
+    print("MENU PRINCIPAL".center(50))
+    print("=" * 50)
+    print("1. Gerenciar Lote       → cadastrar e vender")
+    print("2. Ver Histórico        → lotes anteriores")
     print("3. Sair")
+    print("=" * 50)
     opcao = input("Escolha uma opção: ")
     return opcao
 
@@ -87,18 +94,25 @@ def sub_menu_lote(usuario_id):
     opcao = ""
 
     while opcao != "6":
-        print("\n===== LOTE =====")
-        print("1. Cadastrar Lote")
-        print("2. Ver Estimativa")
-        print("3. Registrar Gastos")
-        print("4. Registrar Venda")
-        print("5. Análise da IA")
+        print("\n" + "=" * 50)
+        print("GERENCIAMENTO DE LOTE".center(50))
+        print("=" * 50)
+        print("1. Cadastrar Lote       → registrar novo lote")
+        print("2. Ver Estimativa       → projeção de resultado")
+        print("3. Registrar Gastos     → custos de criação")
+        print("4. Registrar Venda      → finalizar o lote")
+        print("5. Análise da IA        → diagnóstico do resultado")
         print("6. Voltar")
+        print("=" * 50)
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
             lote = menu_lote()
-            print("Lote cadastrado!")
+            print("\n" + "=" * 50)
+            print("✔ Lote cadastrado com sucesso!".center(50))
+            print("=" * 50)
+            print("→ Veja a estimativa (opção 2) ou")
+            print("  registre os gastos (opção 3).")
 
         elif opcao == "2":
             if lote is None:
@@ -146,7 +160,10 @@ def sub_menu_lote(usuario_id):
             print("Opção inválida.")
 
 def menu_lote():
-    print("\n===== CADASTRO DO LOTE =====")
+    print("\n" + "=" * 50)
+    print("CADASTRO DO LOTE".center(50))
+    print("Informe os dados de compra do rebanho.".center(50))
+    print("=" * 50)
 
     racas_validas = list(RACAS.keys())
     raca = ""
@@ -168,11 +185,11 @@ def menu_lote():
             print("Categoria inválida.")
 
     quantidade = 0
-    while quantidade <= 0:
+    while quantidade <= 0 or quantidade > QUANTIDADE_MAXIMA:
         try:
             quantidade = int(input("Quantidade de animais: "))
-            if quantidade <= 0:
-                print("Digite um número maior que zero.")
+            if quantidade <= 0 or quantidade > QUANTIDADE_MAXIMA:
+                print(f"Digite um número entre 1 e {QUANTIDADE_MAXIMA}.")
         except:
             print("Digite apenas números inteiros.")
 
@@ -195,36 +212,52 @@ def menu_lote():
             print("Digite apenas números.")
 
     dias = 0
-    while dias < CICLO_MINIMO_DIAS:
+    while dias < CICLO_MINIMO_DIAS or dias > CICLO_MAXIMO_DIAS:
         try:
             dias = int(input("Tempo estimado de criação (dias): "))
-            if dias < CICLO_MINIMO_DIAS:
-                print(f"O ciclo mínimo é de {CICLO_MINIMO_DIAS} dias.")
+            if dias < CICLO_MINIMO_DIAS or dias > CICLO_MAXIMO_DIAS:
+                print(f"Digite um valor entre {CICLO_MINIMO_DIAS} e {CICLO_MAXIMO_DIAS} dias.")
         except:
             print("Digite apenas números inteiros.")
 
     lote = cadastrar_lote(raca, categoria, quantidade, peso_compra, preco_compra)
     lote["dias_criacao"] = dias
+
+    print("\n" + "=" * 50)
+    print("RESUMO DO CADASTRO".center(50))
+    print("=" * 50)
+    print(f"  Raça:              {raca}")
+    print(f"  Categoria:         {categoria}")
+    print(f"  Quantidade:        {quantidade} animais")
+    print(f"  Dias de criação:   {dias}")
+    print(f"  Custo total:       R$ {quantidade * preco_compra:.2f}")
+    print("=" * 50)
     return lote
 
 def menu_gastos():
-    print("\n===== GASTOS DE CRIAÇÃO =====")
+    print("\n" + "=" * 50)
+    print("GASTOS DE CRIAÇÃO".center(50))
+    print("Digite 0 caso não tenha tido esse gasto.".center(50))
+    print("=" * 50)
 
-    try:
-        alimentacao = float(input("Custo total de alimentação (R$): "))
-        vacinas = float(input("Custo com vacinas obrigatórias (R$): "))
-        medicamentos = float(input("Custo com medicamentos opcionais (R$): "))
-        frete = float(input("Custo com frete (R$): "))
-        mao_de_obra = float(input("Custo com mão de obra (R$): "))
-        documentacao = float(input("Custos com documentação e taxas (R$): "))
-    except:
-        print("Digite apenas números válidos para os gastos.")
-        return [0, 0, 0, 0, 0, 0]
+    alimentacao  = pedir_valor("Custo total de alimentação (R$): ")
+    vacinas      = pedir_valor("Custo com vacinas obrigatórias (R$): ")
+    medicamentos = pedir_valor("Custo com medicamentos opcionais (R$): ")
+    frete        = pedir_valor("Custo com frete (R$): ")
+    mao_de_obra  = pedir_valor("Custo com mão de obra (R$): ")
+    documentacao = pedir_valor("Custos com documentação e taxas (R$): ")
 
+    total = sum([alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao])
+    print("\n" + "=" * 50)
+    print(f"Total de gastos: R$ {total:.2f}".center(50))
+    print("=" * 50)
     return [alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao]
 
 def menu_venda(lote, lista_gastos, usuario_id):
-    print("\n===== DADOS DA VENDA =====")
+    print("\n" + "=" * 50)
+    print("REGISTRO DE VENDA".center(50))
+    print("Informe os dados reais da venda.".center(50))
+    print("=" * 50)
 
     peso_venda = 0
     while peso_venda < PESO_MINIMO:
@@ -247,6 +280,11 @@ def menu_venda(lote, lista_gastos, usuario_id):
     opcoes_validas = ["PF", "PJ", "SE"]
     tipo_produtor = ""
     while tipo_produtor not in opcoes_validas:
+        print("\nTipo de produtor:")
+        print("  PF → Pessoa Física")
+        print("  PJ → Pessoa Jurídica")
+        print("  SE → Segurado Especial")
+        tipo_produtor = input("Digite PF, PJ ou SE: ").upper()
         tipo_produtor = input("Tipo de produtor (PF/PJ/SE): ").upper()
         if tipo_produtor not in opcoes_validas:
             print("Opção inválida.")
@@ -303,6 +341,39 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+
+def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca):
+    if peso_carcaca < meta_peso_carcaca:
+        diferenca_meta = meta_peso_carcaca - peso_carcaca
+
+        prompt = f"""
+            Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
+
+            DADOS PARA ANÁLISE:
+            - Raça do gado: {raca_boi}
+            - Peso de carcaça obtido: {peso_carcaca:.2f} kg
+            - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
+            - Déficit de peso: {diferenca_meta:.2f} kg
+
+            TAREFA:
+            1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
+            2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
+            3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
+            4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
+
+            Responda de forma técnica, direta e em tópicos.
+            """
+        try:
+            client = genai.Client()
+            resposta = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=prompt
+            )
+            return resposta.text
+        except Exception as e:
+            return f"Erro na API do Gemini: {e}"
+
+    return None
 
 def menu_historico(usuario_id):
     historico = banco.buscar_historico(usuario_id)
