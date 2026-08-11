@@ -4,7 +4,11 @@ from dados import *
 from banco import *
 from dotenv import load_dotenv
 from google import genai
+import os
+from grafico import gerar_grafico_lucro_equilibrio
+load_dotenv()
 
+#-------------------------------------------------------------------------------------------------------
 
 def iniciar_sistema():
     print("=" * 50)
@@ -13,21 +17,28 @@ def iniciar_sistema():
     print("=" * 50)
     usuario_id = fazer_login_ou_cadastro()
     opcao = ""
-
-    while opcao != "3":
+    while opcao != "4":
         opcao = menu_principal()
 
         if opcao == "1":
-            sub_menu_lote(usuario_id)   
+            lote = menu_lote()
+            lista_gastos = menu_gastos()        
+            menu_venda(lote, lista_gastos, usuario_id)      # passa lista_gastos pro menu_venda
+
         elif opcao == "2":
-            menu_historico(usuario_id)
+            menu_historico(usuario_id)             
 
         elif opcao == "3":
+            print("Gerando gráfico de relação entre ponto de equilíbrio e preço de venda.")
+            gerar_grafico_lucro_equilibrio(usuario_id)
+
+        elif opcao == "4":
             print("Encerrando o sistema. Até logo!")
 
         else:
-            print("Opção inválida. Digite 1, 2 ou 3.")
+            print("Opção inválida. Digite 1, 2, 3 ou 4.")
 
+#-------------------------------------------------------------------------------------------------------
 
 def fazer_login_ou_cadastro():
     while True:
@@ -75,89 +86,20 @@ def fazer_login_ou_cadastro():
         else:
             print("Opção inválida.")
             continue
+
+#-------------------------------------------------------------------------------------------------------
+
     
 def menu_principal():
-    print("\n" + "=" * 50)
-    print("MENU PRINCIPAL".center(50))
-    print("=" * 50)
-    print("1. Gerenciar Lote       → cadastrar e vender")
-    print("2. Ver Histórico        → lotes anteriores")
-    print("3. Sair")
-    print("=" * 50)
+    print("\n===== MENU PRINCIPAL =====")
+    print("1. Cadastrar novo lote")
+    print("2. Ver histórico")
+    print("3. Consultar gráfico de relação entre lucro e ponto de equilíbrio.")
+    print("4. Sair")
     opcao = input("Escolha uma opção: ")
     return opcao
 
-def sub_menu_lote(usuario_id):
-    lote = None
-    lista_gastos = []
-    venda_realizada = False
-    opcao = ""
-
-    while opcao != "6":
-        print("\n" + "=" * 50)
-        print("GERENCIAMENTO DE LOTE".center(50))
-        print("=" * 50)
-        print("1. Cadastrar Lote       → registrar novo lote")
-        print("2. Ver Estimativa       → projeção de resultado")
-        print("3. Registrar Gastos     → custos de criação")
-        print("4. Registrar Venda      → finalizar o lote")
-        print("5. Análise da IA        → diagnóstico do resultado")
-        print("6. Voltar")
-        print("=" * 50)
-        opcao = input("Escolha uma opção: ")
-
-        if opcao == "1":
-            lote = menu_lote()
-            print("\n" + "=" * 50)
-            print("✔ Lote cadastrado com sucesso!".center(50))
-            print("=" * 50)
-            print("→ Veja a estimativa (opção 2) ou")
-            print("  registre os gastos (opção 3).")
-
-        elif opcao == "2":
-            if lote is None:
-                print("Cadastre o lote primeiro (opção 1).")
-            else:
-                exibir_estimativa(lote)
-
-        elif opcao == "3":
-            if lote is None:
-                print("Cadastre o lote primeiro (opção 1).")
-            else:
-                lista_gastos = menu_gastos()
-
-        elif opcao == "4":
-            if lote is None:
-                print("Cadastre o lote primeiro (opção 1).")
-            elif not lista_gastos:
-                print("Registre os gastos primeiro (opção 3).")
-            elif venda_realizada:
-                print("Venda já registrada para este lote.")
-            else:
-                menu_venda(lote, lista_gastos, usuario_id)
-                venda_realizada = True
-
-        elif opcao == "5":
-            if not venda_realizada:
-                print("Registre a venda primeiro (opção 4).")
-            else:
-                meta = lote.get("peso_carcaca_estimado", None)
-                if meta is None:
-                    print("Estime o lote primeiro (opção 2) antes de analisar.")
-                else:
-                    resultado = analise_ia(lote["peso_carcaca_real"], lote["raca"], meta)
-                    if resultado:
-                        print("\n===== ANÁLISE DA IA =====")
-                        print(resultado)
-                        print("===========================")
-                    else:
-                        print("O peso de carcaça ficou dentro ou acima da meta. Nenhuma análise necessária.")
-
-        elif opcao == "6":
-            print("Voltando ao menu principal...")
-
-        else:
-            print("Opção inválida.")
+#-------------------------------------------------------------------------------------------------------
 
 def menu_lote():
     print("\n" + "=" * 50)
@@ -234,6 +176,8 @@ def menu_lote():
     print("=" * 50)
     return lote
 
+#-------------------------------------------------------------------------------------------------------
+
 def menu_gastos():
     print("\n" + "=" * 50)
     print("GASTOS DE CRIAÇÃO".center(50))
@@ -252,6 +196,8 @@ def menu_gastos():
     print(f"Total de gastos: R$ {total:.2f}".center(50))
     print("=" * 50)
     return [alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao]
+
+#-------------------------------------------------------------------------------------------------------
 
 def menu_venda(lote, lista_gastos, usuario_id):
     print("\n" + "=" * 50)
@@ -305,6 +251,8 @@ def menu_venda(lote, lista_gastos, usuario_id):
     rendimento_medio = (lote["rendimento_min"] + lote["rendimento_max"]) / 2
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
+
+
     receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
     total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
     receita_liquida = calcular_receita_liquida(receita_bruta, total_impostos)
@@ -341,39 +289,62 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+    analise_ia(
+        peso_carcaca=peso_carcaca,
+        raca_boi=lote["raca"],
+        meta_peso_carcaca=lote["peso_carcaca_estimado"],
+        categoria=lote["categoria"],
+    )
 
-def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca):
-    if peso_carcaca < meta_peso_carcaca:
-        diferenca_meta = meta_peso_carcaca - peso_carcaca
+#-------------------------------------------------------------------------------------------------------
 
-        prompt = f"""
-            Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
 
-            DADOS PARA ANÁLISE:
-            - Raça do gado: {raca_boi}
-            - Peso de carcaça obtido: {peso_carcaca:.2f} kg
-            - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
-            - Déficit de peso: {diferenca_meta:.2f} kg
+def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
+    
+    if peso_carcaca >= meta_peso_carcaca:
+        return
 
-            TAREFA:
-            1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
-            2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
-            3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
-            4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
+    diferenca_meta = meta_peso_carcaca - peso_carcaca
 
-            Responda de forma técnica, direta e em tópicos.
-            """
-        try:
-            client = genai.Client()
-            resposta = client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=prompt
-            )
-            return resposta.text
-        except Exception as e:
-            return f"Erro na API do Gemini: {e}"
+    prompt = f"""
+    Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
+
+    DADOS PARA ANÁLISE:
+    - Raça do gado: {raca_boi}
+    - Peso de carcaça obtido: {peso_carcaca:.2f} kg
+    - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
+    - Déficit de peso: {diferenca_meta:.2f} kg
+    - Categoria do animal: {categoria}
+
+    TAREFA:
+    1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
+    2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
+    3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
+    4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
+
+    Responda de forma técnica, direta e em tópicos.
+    """
+
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        resposta = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+        )
+
+        # Imprime o bloco formatado direto pela função
+        print("\n===== ANÁLISE DA IA =====")
+        print(resposta.text)
+        print("===========================")
+
+    except Exception as e:
+        print(f"Não foi possível gerar a análise da IA: {e}")
 
     return None
+
+#-------------------------------------------------------------------------------------------------------
 
 def menu_historico(usuario_id):
     historico = banco.buscar_historico(usuario_id)
@@ -384,7 +355,6 @@ def menu_historico(usuario_id):
     for raca, categoria, quantidade, lucro_liquido, data in historico:
         print(f"{data} — {quantidade}x {raca} ({categoria}) — Lucro líquido: R$ {lucro_liquido:.2f}")
 
+#-------------------------------------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    load_dotenv()
-    iniciar_sistema()
+iniciar_sistema()
