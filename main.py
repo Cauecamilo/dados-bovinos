@@ -5,7 +5,10 @@ from banco import *
 import os
 from dotenv import load_dotenv
 from google import genai
+from grafico import gerar_grafico_lucro_equilibrio
+load_dotenv()
 
+#-------------------------------------------------------------------------------------------------------
 
 def iniciar_sistema():
     print("===========================================")
@@ -15,23 +18,28 @@ def iniciar_sistema():
     usuario_id = fazer_login_ou_cadastro()
 
     opcao = ""
-    while opcao != "3":
+    while opcao != "4":
         opcao = menu_principal()
 
         if opcao == "1":
             lote = menu_lote()
-            lista_gastos = menu_gastos()        # Alan vai retornar lista_gastos
+            lista_gastos = menu_gastos()        
             menu_venda(lote, lista_gastos, usuario_id)      # passa lista_gastos pro menu_venda
 
         elif opcao == "2":
-            menu_historico(usuario_id)             # consultar_historico — aguardando banco.py
+            menu_historico(usuario_id)             
 
         elif opcao == "3":
+            print("Gerando gráfico de relação entre ponto de equilíbrio e preço de venda.")
+            gerar_grafico_lucro_equilibrio(usuario_id)
+
+        elif opcao == "4":
             print("Encerrando o sistema. Até logo!")
 
         else:
-            print("Opção inválida. Digite 1, 2 ou 3.")
+            print("Opção inválida. Digite 1, 2, 3 ou 4.")
 
+#-------------------------------------------------------------------------------------------------------
 
 def fazer_login_ou_cadastro():
     while True:
@@ -75,14 +83,20 @@ def fazer_login_ou_cadastro():
         else:
             print("Opção inválida.")
             continue
+
+#-------------------------------------------------------------------------------------------------------
+
     
 def menu_principal():
     print("\n===== MENU PRINCIPAL =====")
     print("1. Cadastrar novo lote")
     print("2. Ver histórico")
-    print("3. Sair")
+    print("3. Consultar gráfico de relação entre lucro e ponto de equilíbrio.")
+    print("4. Sair")
     opcao = input("Escolha uma opção: ")
     return opcao
+
+#-------------------------------------------------------------------------------------------------------
 
 def menu_lote():
     print("\n===== CADASTRO DO LOTE =====")
@@ -162,6 +176,8 @@ def menu_lote():
 
     return lote
 
+#-------------------------------------------------------------------------------------------------------
+
 def menu_gastos():
     print("\n===== GASTOS DE CRIAÇÃO =====")
 
@@ -177,6 +193,8 @@ def menu_gastos():
         return [0, 0, 0, 0, 0, 0]
 
     return [alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao]
+
+#-------------------------------------------------------------------------------------------------------
 
 def menu_venda(lote, lista_gastos, usuario_id):
     print("\n===== DADOS DA VENDA =====")
@@ -255,15 +273,6 @@ def menu_venda(lote, lista_gastos, usuario_id):
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
 
-    # ===== ANÁLISE DE IA =====
-    # Compara o peso de carcaça realmente obtido na venda com a meta
-    # estimada lá no cadastro do lote (ambos em kg). Só chama a IA
-    # quando o resultado ficou abaixo do esperado.
-    resultado_ia = analise_ia(peso_carcaca, lote["raca"], lote["peso_carcaca_estimado"])
-    if resultado_ia:
-        print("\n===== ANÁLISE DA IA =====")
-        print(resultado_ia)
-        print("===========================")
 
     receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
     total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
@@ -304,55 +313,63 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+    analise_ia(
+        peso_carcaca=peso_carcaca,
+        raca_boi=lote["raca"],
+        meta_peso_carcaca=lote["peso_carcaca_estimado"],
+        categoria=lote["categoria"],
+    )
+
+#-------------------------------------------------------------------------------------------------------
 
 
+def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
+    
+    if peso_carcaca >= meta_peso_carcaca:
+        return
 
-# Carrega a chave contida no arquivo .env para a memória
-load_dotenv()
+    diferenca_meta = meta_peso_carcaca - peso_carcaca
 
-def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca):
+    prompt = f"""
+    Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
+
+    DADOS PARA ANÁLISE:
+    - Raça do gado: {raca_boi}
+    - Peso de carcaça obtido: {peso_carcaca:.2f} kg
+    - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
+    - Déficit de peso: {diferenca_meta:.2f} kg
+    - Categoria do animal: {categoria}
+
+    TAREFA:
+    1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
+    2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
+    3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
+    4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
+
+    Responda de forma técnica, direta e em tópicos.
     """
-    Gera uma análise da IA quando o peso de carcaça obtido na venda
-    ficou abaixo da meta estimada no cadastro do lote.
 
-    peso_carcaca:      peso de carcaça real, obtido na venda (kg)
-    raca_boi:          raça do lote
-    meta_peso_carcaca: peso de carcaça estimado no cadastro do lote (kg)
-    """
-    if peso_carcaca < meta_peso_carcaca:
-        diferenca_meta = meta_peso_carcaca - peso_carcaca
+    try:
+        from google import genai
 
-        prompt = f"""
-            Você é um zootecnista sênior e consultor em manejo de bovinocultura de corte.
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        resposta = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+        )
 
-            DADOS PARA ANÁLISE:
-            - Raça do gado: {raca_boi}
-            - Peso de carcaça obtido: {peso_carcaca:.2f} kg
-            - Peso de carcaça esperado (Meta): {meta_peso_carcaca:.2f} kg
-            - Déficit de peso: {diferenca_meta:.2f} kg
+        # Imprime o bloco formatado direto pela função
+        print("\n===== ANÁLISE DA IA =====")
+        print(resposta.text)
+        print("===========================")
 
-            TAREFA:
-            1. CLASSIFICAÇÃO DE GRAVIDADE: Classifique a perda de {diferenca_meta:.2f} kg (Leve, Moderada ou Crítica).
-            2. ANÁLISE DE RAÇA: Avalie o desempenho para a raça {raca_boi}.
-            3. CAUSAS PROVÁVEIS: Liste exatamente 3 causas prováveis.
-            4. PLANO DE AÇÃO: Recomende 2 ações imediatas para a raça {raca_boi}.
-
-            Responda de forma técnica, direta e em tópicos.
-            """
-        try:
-            # O cliente lê automaticamente a GEMINI_API_KEY do ambiente carregado pelo dotenv
-            client = genai.Client()
-            resposta = client.models.generate_content(
-                model='gemini-3.6-flash',
-                contents=prompt
-            )
-            return resposta.text
-
-        except Exception as e:
-            return f"Erro na API do Gemini: {e}"
+    except Exception as e:
+        print(f"Não foi possível gerar a análise da IA: {e}")
 
     # peso dentro ou acima da meta: nenhuma análise necessária
     return None
+
+#-------------------------------------------------------------------------------------------------------
 
 def menu_historico(usuario_id):
     historico = banco.buscar_historico(usuario_id)
@@ -363,6 +380,6 @@ def menu_historico(usuario_id):
     for raca, categoria, quantidade, lucro_liquido, data in historico:
         print(f"{data} — {quantidade}x {raca} ({categoria}) — Lucro líquido: R$ {lucro_liquido:.2f}")
 
+#-------------------------------------------------------------------------------------------------------
 
-if __name__ == "__main__":
-    iniciar_sistema()
+iniciar_sistema()
