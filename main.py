@@ -2,21 +2,20 @@ import banco
 from calculos import *
 from dados import *
 from banco import *
-import os
 from dotenv import load_dotenv
 from google import genai
+import os
 from grafico import gerar_grafico_lucro_equilibrio
 load_dotenv()
 
 #-------------------------------------------------------------------------------------------------------
 
 def iniciar_sistema():
-    print("===========================================")
-    print("  BEM-VINDO AO SISTEMA DE GESTÃO PECUÁRIA ")
-    print("===========================================")
-
+    print("=" * 50)
+    print("SISTEMA DE GESTÃO PECUÁRIA BOVINA".center(50))
+    print("Controle completo do seu rebanho".center(50))
+    print("=" * 50)
     usuario_id = fazer_login_ou_cadastro()
-
     opcao = ""
     while opcao != "4":
         opcao = menu_principal()
@@ -43,6 +42,9 @@ def iniciar_sistema():
 
 def fazer_login_ou_cadastro():
     while True:
+        print("\n" + "=" * 50)
+        print("ACESSO AO SISTEMA".center(50))
+        print("=" * 50)
         print("\n1. Fazer login")
         print("2. Cadastrar novo usuário")
         print("3. Sair")
@@ -54,6 +56,7 @@ def fazer_login_ou_cadastro():
             usuario = banco.buscar_usuario(email, senha)
             tentativas = 1
             while usuario is None and tentativas < 3:
+                print(f"Credenciais inválidas. Tentativas restantes: {3 - tentativas}")
                 email = input("Email: ")
                 senha = input("Senha: ")
                 usuario = banco.buscar_usuario(email, senha)
@@ -99,7 +102,10 @@ def menu_principal():
 #-------------------------------------------------------------------------------------------------------
 
 def menu_lote():
-    print("\n===== CADASTRO DO LOTE =====")
+    print("\n" + "=" * 50)
+    print("CADASTRO DO LOTE".center(50))
+    print("Informe os dados de compra do rebanho.".center(50))
+    print("=" * 50)
 
     racas_validas = list(RACAS.keys())
     raca = ""
@@ -121,11 +127,11 @@ def menu_lote():
             print("Categoria inválida.")
 
     quantidade = 0
-    while quantidade <= 0:
+    while quantidade <= 0 or quantidade > QUANTIDADE_MAXIMA:
         try:
             quantidade = int(input("Quantidade de animais: "))
-            if quantidade <= 0:
-                print("Digite um número maior que zero.")
+            if quantidade <= 0 or quantidade > QUANTIDADE_MAXIMA:
+                print(f"Digite um número entre 1 e {QUANTIDADE_MAXIMA}.")
         except:
             print("Digite apenas números inteiros.")
 
@@ -148,56 +154,56 @@ def menu_lote():
             print("Digite apenas números.")
 
     dias = 0
-    while dias < CICLO_MINIMO_DIAS:
+    while dias < CICLO_MINIMO_DIAS or dias > CICLO_MAXIMO_DIAS:
         try:
             dias = int(input("Tempo estimado de criação (dias): "))
-            if dias < CICLO_MINIMO_DIAS:
-                print(f"O ciclo mínimo é de {CICLO_MINIMO_DIAS} dias.")
+            if dias < CICLO_MINIMO_DIAS or dias > CICLO_MAXIMO_DIAS:
+                print(f"Digite um valor entre {CICLO_MINIMO_DIAS} e {CICLO_MAXIMO_DIAS} dias.")
         except:
             print("Digite apenas números inteiros.")
 
     lote = cadastrar_lote(raca, categoria, quantidade, peso_compra, preco_compra)
     lote["dias_criacao"] = dias
 
-    # exibe estimativa
-    estimativa = estimar_resultado_lote(lote, dias)
-    print("\n===== ESTIMATIVA DO LOTE =====")
-    print(f"Ganho médio diário estimado: {estimativa['gmd_medio']:.2f} kg/dia")
-    print(f"Rendimento médio esperado:   {estimativa['rendimento_medio']*100:.1f}%")
-    print(f"Peso final estimado:         {estimativa['peso_final_estimado']:.1f} kg por animal")
-    print(f"Peso de carcaça estimado:    {estimativa['peso_carcaca_estimado']:.1f} kg por animal")
-    print(f"Arrobas estimadas por animal:{estimativa['arrobas_estimadas']:.1f} @")
-    print(f"Arrobas totais do lote:      {estimativa['arrobas_estimadas'] * quantidade:.1f} @")
-    print("===============================")
-
-    # guarda a meta de peso de carcaça no próprio lote, para poder
-    # comparar depois com o peso real de venda (usado na análise de IA)
-    lote["peso_carcaca_estimado"] = estimativa["peso_carcaca_estimado"]
-
+    print("\n" + "=" * 50)
+    print("RESUMO DO CADASTRO".center(50))
+    print("=" * 50)
+    print(f"  Raça:              {raca}")
+    print(f"  Categoria:         {categoria}")
+    print(f"  Quantidade:        {quantidade} animais")
+    print(f"  Dias de criação:   {dias}")
+    print(f"  Custo total:       R$ {quantidade * preco_compra:.2f}")
+    print("=" * 50)
     return lote
 
 #-------------------------------------------------------------------------------------------------------
 
 def menu_gastos():
-    print("\n===== GASTOS DE CRIAÇÃO =====")
+    print("\n" + "=" * 50)
+    print("GASTOS DE CRIAÇÃO".center(50))
+    print("Digite 0 caso não tenha tido esse gasto.".center(50))
+    print("=" * 50)
 
-    try:
-        alimentacao = float(input("Custo total de alimentação (R$): "))
-        vacinas = float(input("Custo com vacinas obrigatórias (R$): "))
-        medicamentos = float(input("Custo com medicamentos opcionais (R$): "))
-        frete = float(input("Custo com frete (R$): "))
-        mao_de_obra = float(input("Custo com mão de obra (R$): "))
-        documentacao = float(input("Custos com documentação e taxas (R$): "))
-    except:
-        print("Digite apenas números válidos para os gastos.")
-        return [0, 0, 0, 0, 0, 0]
+    alimentacao  = pedir_valor("Custo total de alimentação (R$): ")
+    vacinas      = pedir_valor("Custo com vacinas obrigatórias (R$): ")
+    medicamentos = pedir_valor("Custo com medicamentos opcionais (R$): ")
+    frete        = pedir_valor("Custo com frete (R$): ")
+    mao_de_obra  = pedir_valor("Custo com mão de obra (R$): ")
+    documentacao = pedir_valor("Custos com documentação e taxas (R$): ")
 
+    total = sum([alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao])
+    print("\n" + "=" * 50)
+    print(f"Total de gastos: R$ {total:.2f}".center(50))
+    print("=" * 50)
     return [alimentacao, vacinas, medicamentos, frete, mao_de_obra, documentacao]
 
 #-------------------------------------------------------------------------------------------------------
 
 def menu_venda(lote, lista_gastos, usuario_id):
-    print("\n===== DADOS DA VENDA =====")
+    print("\n" + "=" * 50)
+    print("REGISTRO DE VENDA".center(50))
+    print("Informe os dados reais da venda.".center(50))
+    print("=" * 50)
 
     peso_venda = 0
     while peso_venda < PESO_MINIMO:
@@ -220,55 +226,28 @@ def menu_venda(lote, lista_gastos, usuario_id):
     opcoes_validas = ["PF", "PJ", "SE"]
     tipo_produtor = ""
     while tipo_produtor not in opcoes_validas:
+        print("\nTipo de produtor:")
+        print("  PF → Pessoa Física")
+        print("  PJ → Pessoa Jurídica")
+        print("  SE → Segurado Especial")
+        tipo_produtor = input("Digite PF, PJ ou SE: ").upper()
         tipo_produtor = input("Tipo de produtor (PF/PJ/SE): ").upper()
         if tipo_produtor not in opcoes_validas:
             print("Opção inválida.")
 
     opcoes_estado = ["SIM", "NAO"]
     mesmo_estado = ""
-    aliquota_icms = 0
+
     while mesmo_estado not in opcoes_estado:
         mesmo_estado = input("A venda é para dentro do mesmo estado? (SIM/NAO): ").upper()
         if mesmo_estado not in opcoes_estado:
             print("Digite SIM ou NAO.")
+
     if mesmo_estado == "NAO":
-        while aliquota_icms <= 0:
-            try:
-                aliquota_icms = float(input("Alíquota do ICMS do seu estado (%): "))
-                if aliquota_icms <= 0:
-                    print("Digite um valor maior que zero.")
-            except:
-                print("Digite apenas números.")
+        aliquota_icms = ICMS_INTERESTADUAL
+    else:
+        aliquota_icms = 0
 
-    dias_transporte = 0
-    while dias_transporte <= 0:  # CORREÇÃO: adicionada validação
-        try:
-            dias_transporte = int(input("Dias de transporte até o frigorífico: "))
-            if dias_transporte <= 0:
-                print("Digite um número maior que zero.")
-        except:
-            print("Digite apenas números inteiros.")
-
-    qtd_refugo = -1
-    while qtd_refugo < 0:
-        try:
-            qtd_refugo = int(input("Quantidade de animais refugo (0 se nenhum): "))
-            if qtd_refugo < 0:
-                print("Digite 0 ou um número positivo.")
-        except:
-            print("Digite apenas números inteiros.")
-
-    valor_refugo = 0
-    if qtd_refugo > 0:
-        while valor_refugo <= 0:
-            try:
-                valor_refugo = float(input("Valor recebido por cada animal refugo (R$): "))
-                if valor_refugo <= 0:
-                    print("Digite um valor maior que zero.")
-            except:
-                print("Digite apenas números.")
-
-    total_refugo = registrar_refugo(qtd_refugo, valor_refugo)
     rendimento_medio = (lote["rendimento_min"] + lote["rendimento_max"]) / 2
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
@@ -294,10 +273,6 @@ def menu_venda(lote, lista_gastos, usuario_id):
         # dados da venda
         "peso_venda":         peso_venda,
         "preco_arroba":       preco_arroba,
-        "dias_transporte":    dias_transporte,
-        "qtd_refugo":         qtd_refugo,
-        "valor_refugo":       valor_refugo,
-        "total_refugo":       total_refugo,
         # resultados financeiros
         "receita_bruta":      receita_bruta,
         "total_impostos":     total_impostos,
@@ -309,6 +284,7 @@ def menu_venda(lote, lista_gastos, usuario_id):
         "ponto_equilibrio":   ponto_equilibrio,
     }
 
+    lote["peso_carcaca_real"] = peso_carcaca
     exibir_resumo_lote(resultados)
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
@@ -366,7 +342,6 @@ def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
     except Exception as e:
         print(f"Não foi possível gerar a análise da IA: {e}")
 
-    # peso dentro ou acima da meta: nenhuma análise necessária
     return None
 
 #-------------------------------------------------------------------------------------------------------
