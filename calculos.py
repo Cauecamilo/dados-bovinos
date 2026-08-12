@@ -32,10 +32,10 @@ def calcular_receita_liquida(receita_bruta, total_impostos):
 def calcular_lucro_liquido(receita_liquida, gastos_totais):
     return receita_liquida - gastos_totais
 
-def calcular_ponto_equilibrio(gastos_totais, total_arrobas):
+def calcular_ponto_equilibrio(gastos_totais, total_arrobas,total_impostos):
     if total_arrobas <= 0:
         return 0
-    return gastos_totais / total_arrobas
+    return (gastos_totais+ total_impostos) / total_arrobas
 
 def calcular_lucro_por_cabeca(lucro_liquido, qtd_animais):
     if qtd_animais <= 0:

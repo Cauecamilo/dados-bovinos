@@ -260,7 +260,7 @@ def menu_venda(lote, lista_gastos, usuario_id):
     custo_total = calcular_custo_total(lote["custo_compra_total"], lista_gastos)
     lucro_liquido = calcular_lucro_liquido(receita_liquida, custo_total)
     lucro_por_cabeca = calcular_lucro_por_cabeca(lucro_liquido, lote["quantidade"])
-    ponto_equilibrio = calcular_ponto_equilibrio(custo_total, arrobas_totais)
+    ponto_equilibrio = calcular_ponto_equilibrio(custo_total, arrobas_totais,total_impostos)
 
     resultados = {
         # dados do lote
@@ -289,10 +289,12 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_resultado_financeiro(resultados)
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
+
+    estimativa = estimar_resultado_lote(lote, lote["dias_criacao"])
     analise_ia(
         peso_carcaca=peso_carcaca,
         raca_boi=lote["raca"],
-        meta_peso_carcaca=lote["peso_carcaca_estimado"],
+        meta_peso_carcaca= estimativa["peso_carcaca_estimado"],
         categoria=lote["categoria"],
     )
 
