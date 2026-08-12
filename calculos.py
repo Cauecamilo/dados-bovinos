@@ -167,7 +167,6 @@ def exibir_alerta_lucro(lucro, ponto_equilibrio):
         print("  → NO LIMITE — sem lucro nem prejuízo.")
     print(f"  Ponto de equilíbrio: R$ {ponto_equilibrio:.2f} por @")
     print("=" * 50)
-    print("  → Use a opção 5 para análise detalhada da IA.")
 
 # Histórico
 def salvar_resultado(dados_lote, usuario_id):

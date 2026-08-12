@@ -9,45 +9,18 @@ from grafico import gerar_grafico_lucro_equilibrio
 load_dotenv()
 
 #-------------------------------------------------------------------------------------------------------
-
-def iniciar_sistema():
-    print("=" * 50)
-    print("SISTEMA DE GESTÃO PECUÁRIA BOVINA".center(50))
-    print("Controle completo do seu rebanho".center(50))
-    print("=" * 50)
-    usuario_id = fazer_login_ou_cadastro()
-    opcao = ""
-    while opcao != "4":
-        opcao = menu_principal()
-
-        if opcao == "1":
-            lote = menu_lote()
-            lista_gastos = menu_gastos()        
-            menu_venda(lote, lista_gastos, usuario_id)      # passa lista_gastos pro menu_venda
-
-        elif opcao == "2":
-            menu_historico(usuario_id)             
-
-        elif opcao == "3":
-            print("Gerando gráfico de relação entre ponto de equilíbrio e preço de venda.")
-            gerar_grafico_lucro_equilibrio(usuario_id)
-
-        elif opcao == "4":
-            print("Encerrando o sistema. Até logo!")
-
-        else:
-            print("Opção inválida. Digite 1, 2, 3 ou 4.")
-
-#-------------------------------------------------------------------------------------------------------
-
 def fazer_login_ou_cadastro():
+    opcoes = ["Fazer login", "Cadastrar novo usuário", "Sair"]
+
     while True:
         print("\n" + "=" * 50)
         print("ACESSO AO SISTEMA".center(50))
         print("=" * 50)
-        print("\n1. Fazer login")
-        print("2. Cadastrar novo usuário")
-        print("3. Sair")
+        print()
+
+        for i, item in enumerate(opcoes, start=1):
+            print(f"{i}. {item}")
+
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
@@ -86,10 +59,45 @@ def fazer_login_ou_cadastro():
         else:
             print("Opção inválida.")
             continue
-
 #-------------------------------------------------------------------------------------------------------
 
+def iniciar_sistema():
+    opcoes = ["Cadastrar lote e registrar venda","Ver histórico","Gerar gráfico","Sair"]
     
+    print("=" * 50)
+    print("SISTEMA DE GESTÃO PECUÁRIA BOVINA".center(50))
+    print("Controle completo do seu rebanho".center(50))
+    print("=" * 50)
+    
+    usuario_id = fazer_login_ou_cadastro()
+    opcao_sair = str(len(opcoes))  # última opção é sempre "sair"
+    opcao = ""
+
+    while opcao != opcao_sair:
+        for i, item in enumerate(opcoes, start=1):
+            print(f"{i} - {item}")
+        opcao = input("Escolha uma opção: ")
+
+        if opcao == "1":
+            lote = menu_lote()
+            lista_gastos = menu_gastos()
+            menu_venda(lote, lista_gastos, usuario_id)
+
+        elif opcao == "2":
+            menu_historico(usuario_id)
+
+        elif opcao == "3":
+            print("Gerando gráfico de relação entre ponto de equilíbrio e preço de venda.")
+            gerar_grafico_lucro_equilibrio(usuario_id)
+
+        elif opcao == opcao_sair:
+            print("Encerrando o sistema. Até logo!")
+
+        else:
+            print(f"Opção inválida. Digite um número de 1 a {len(opcoes)}.")
+
+#-------------------------------------------------------------------------------------------------------
+ 
 def menu_principal():
     print("\n===== MENU PRINCIPAL =====")
     print("1. Cadastrar novo lote")
@@ -230,8 +238,8 @@ def menu_venda(lote, lista_gastos, usuario_id):
         print("  PF → Pessoa Física")
         print("  PJ → Pessoa Jurídica")
         print("  SE → Segurado Especial")
+        print("")
         tipo_produtor = input("Digite PF, PJ ou SE: ").upper()
-        tipo_produtor = input("Tipo de produtor (PF/PJ/SE): ").upper()
         if tipo_produtor not in opcoes_validas:
             print("Opção inválida.")
 
@@ -299,7 +307,6 @@ def menu_venda(lote, lista_gastos, usuario_id):
     )
 
 #-------------------------------------------------------------------------------------------------------
-
 
 def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
     
