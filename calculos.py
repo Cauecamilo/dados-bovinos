@@ -32,10 +32,10 @@ def calcular_receita_liquida(receita_bruta, total_impostos):
 def calcular_lucro_liquido(receita_liquida, gastos_totais):
     return receita_liquida - gastos_totais
 
-def calcular_ponto_equilibrio(gastos_totais, total_arrobas,total_impostos):
-    if total_arrobas <= 0:
+def calcular_ponto_equilibrio(custo_total, arrobas_totais):
+    if arrobas_totais <= 0:
         return 0
-    return (gastos_totais+ total_impostos) / total_arrobas
+    return custo_total / arrobas_totais
 
 def calcular_lucro_por_cabeca(lucro_liquido, qtd_animais):
     if qtd_animais <= 0:
@@ -145,14 +145,13 @@ def exibir_estimativa(lote):
     print("Projeção baseada nos dados de cadastro.".center(50))
     print("Os valores reais podem variar.".center(50))
     print("=" * 50)
-    print(f"Ganho médio diário estimado: {estimativa['gmd_medio']:.2f} kg/dia")
-    print(f"Rendimento médio esperado:   {estimativa['rendimento_medio']*100:.1f}%")
-    print(f"Peso final estimado:         {estimativa['peso_final_estimado']:.1f} kg por animal")
-    print(f"Peso de carcaça estimado:    {estimativa['peso_carcaca_estimado']:.1f} kg por animal")
-    print(f"Arrobas estimadas por animal:{estimativa['arrobas_estimadas']:.1f} @")
-    print(f"Arrobas totais do lote:      {estimativa['arrobas_estimadas'] * lote['quantidade']:.1f} @")
-    print(f"Custo de compra do lote: R$ {lote['custo_compra_total']:.2f}")
-    print(f"  Custo de compra do lote: R$ {lote['custo_compra_total']:.2f}")
+    print(f"Ganho médio diário estimado:   {estimativa['gmd_medio']:.2f} kg/dia")
+    print(f"Rendimento médio esperado:     {estimativa['rendimento_medio']*100:.1f}%")
+    print(f"Peso final estimado:           {estimativa['peso_final_estimado']:.1f} kg por animal")
+    print(f"Peso de carcaça estimado:      {estimativa['peso_carcaca_estimado']:.1f} kg por animal")
+    print(f"Arrobas estimadas por animal:  {estimativa['arrobas_estimadas']:.1f} @")
+    print(f"Arrobas totais do lote:        {estimativa['arrobas_estimadas'] * lote['quantidade']:.1f} @")
+    print(f"Custo de compra do lote: R$    {lote['custo_compra_total']:.2f}")
     print("=" * 50)
 
 def exibir_alerta_lucro(lucro, ponto_equilibrio):

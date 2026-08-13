@@ -59,10 +59,11 @@ def fazer_login_ou_cadastro():
         else:
             print("Opção inválida.")
             continue
+
 #-------------------------------------------------------------------------------------------------------
 
 def iniciar_sistema():
-    opcoes = ["Cadastrar lote e registrar venda","Ver histórico","Gerar gráfico","Sair"]
+    opcoes = ["Gerenciamento de Lote", "Ver histórico", "Gerar gráfico", "Sair"]
     
     print("=" * 50)
     print("SISTEMA DE GESTÃO PECUÁRIA BOVINA".center(50))
@@ -74,20 +75,26 @@ def iniciar_sistema():
     opcao = ""
 
     while opcao != opcao_sair:
+        print("\n" + "=" * 50)
+        print("MENU PRINCIPAL".center(50))
+        print("=" * 50)
         for i, item in enumerate(opcoes, start=1):
             print(f"{i} - {item}")
+        print("=" * 50)
         opcao = input("Escolha uma opção: ")
 
         if opcao == "1":
-            lote = menu_lote()
-            lista_gastos = menu_gastos()
-            menu_venda(lote, lista_gastos, usuario_id)
+            sub_menu_lote(usuario_id)
 
         elif opcao == "2":
             menu_historico(usuario_id)
 
         elif opcao == "3":
-            print("Gerando gráfico de relação entre ponto de equilíbrio e preço de venda.")
+            print("\n" + "=" * 50)
+            print("GRÁFICO DE DESEMPENHO".center(50))
+            print("Comparativo entre ponto de equilíbrio".center(50))
+            print("e preço de venda obtido por lote.".center(50))
+            print("=" * 50)
             gerar_grafico_lucro_equilibrio(usuario_id)
 
         elif opcao == opcao_sair:
@@ -98,14 +105,76 @@ def iniciar_sistema():
 
 #-------------------------------------------------------------------------------------------------------
  
-def menu_principal():
-    print("\n===== MENU PRINCIPAL =====")
-    print("1. Cadastrar novo lote")
-    print("2. Ver histórico")
-    print("3. Consultar gráfico de relação entre lucro e ponto de equilíbrio.")
-    print("4. Sair")
-    opcao = input("Escolha uma opção: ")
-    return opcao
+def sub_menu_lote(usuario_id):
+    opcoes = [
+        "Cadastrar Lote",
+        "Ver Estimativa do Seu Lote",
+        "Registrar Gastos",
+        "Registrar Venda",
+        "Análise da IA",
+        "Voltar"
+    ]
+    opcao_sair = str(len(opcoes))  # "6"
+    lote = None
+    lista_gastos = None
+    opcao = ""
+
+    while opcao != opcao_sair:
+        print("\n" + "=" * 50)
+        print("GERENCIAMENTO DE LOTE".center(50))
+        print("=" * 50)
+        for i, item in enumerate(opcoes, start=1):
+            print(f"{i} - {item}")
+        print("=" * 50)
+        opcao = input("Escolha uma opção: ")
+
+        if opcao == "1":
+            lote = menu_lote()
+            print("\n" + "=" * 50)
+            print("✓ Lote cadastrado com sucesso!".center(50))
+            print("-" * 50)
+            print("→ Veja a estimativa do seu Lote (opção 2) ou")
+            print("  registre os gastos (opção 3).")
+
+        elif opcao == "2":
+            if lote is None:
+                print("Cadastre um lote primeiro (opção 1).")
+            else:
+                exibir_estimativa(lote)
+
+        elif opcao == "3":
+            if lote is None:
+                print("Cadastre um lote primeiro (opção 1).")
+            else:
+                lista_gastos = menu_gastos()
+
+        elif opcao == "4":
+            if lote is None:
+                print("Cadastre um lote primeiro (opção 1).")
+            elif lista_gastos is None:
+                print("Registre os gastos primeiro (opção 3).")
+            else:
+                menu_venda(lote, lista_gastos, usuario_id)
+
+        elif opcao == "5":
+            if lote is None:
+                print("Cadastre um lote primeiro (opção 1).")
+            elif "peso_carcaca_real" not in lote:
+                print("Registre a venda primeiro (opção 4) para gerar a análise da IA.")
+            else:
+                estimativa = estimar_resultado_lote(lote, lote["dias_criacao"])
+                analise_ia(
+                    peso_carcaca=lote["peso_carcaca_real"],
+                    raca_boi=lote["raca"],
+                    meta_peso_carcaca=estimativa["peso_carcaca_estimado"],
+                    categoria=lote["categoria"],
+                )
+
+        elif opcao == opcao_sair:
+            print("Voltando ao menu principal...")
+
+        else:
+            print(f"Opção inválida. Digite um número de 1 a {len(opcoes)}.")
 
 #-------------------------------------------------------------------------------------------------------
 
@@ -234,11 +303,10 @@ def menu_venda(lote, lista_gastos, usuario_id):
     opcoes_validas = ["PF", "PJ", "SE"]
     tipo_produtor = ""
     while tipo_produtor not in opcoes_validas:
-        print("\nTipo de produtor:")
+        print("Tipo de produtor:")
         print("  PF → Pessoa Física")
         print("  PJ → Pessoa Jurídica")
         print("  SE → Segurado Especial")
-        print("")
         tipo_produtor = input("Digite PF, PJ ou SE: ").upper()
         if tipo_produtor not in opcoes_validas:
             print("Opção inválida.")
@@ -260,7 +328,6 @@ def menu_venda(lote, lista_gastos, usuario_id):
     peso_carcaca = calcular_peso_carcaca(peso_venda, rendimento_medio * 100)
     arrobas_totais = calcular_arrobas(peso_carcaca) * lote["quantidade"]
 
-
     receita_bruta = calcular_receita_bruta(arrobas_totais, preco_arroba)
     total_impostos = calcular_total_impostos(receita_bruta, tipo_produtor, aliquota_icms)
     receita_liquida = calcular_receita_liquida(receita_bruta, total_impostos)
@@ -268,7 +335,7 @@ def menu_venda(lote, lista_gastos, usuario_id):
     custo_total = calcular_custo_total(lote["custo_compra_total"], lista_gastos)
     lucro_liquido = calcular_lucro_liquido(receita_liquida, custo_total)
     lucro_por_cabeca = calcular_lucro_por_cabeca(lucro_liquido, lote["quantidade"])
-    ponto_equilibrio = calcular_ponto_equilibrio(custo_total, arrobas_totais,total_impostos)
+    ponto_equilibrio = calcular_ponto_equilibrio(custo_total, arrobas_totais)
 
     resultados = {
         # dados do lote
@@ -298,19 +365,17 @@ def menu_venda(lote, lista_gastos, usuario_id):
     exibir_alerta_lucro(resultados["lucro_liquido"], resultados["ponto_equilibrio"])
     salvar_resultado(resultados, usuario_id)
 
-    estimativa = estimar_resultado_lote(lote, lote["dias_criacao"])
-    analise_ia(
-        peso_carcaca=peso_carcaca,
-        raca_boi=lote["raca"],
-        meta_peso_carcaca= estimativa["peso_carcaca_estimado"],
-        categoria=lote["categoria"],
-    )
-
 #-------------------------------------------------------------------------------------------------------
 
-def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
+def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca, categoria):
     
     if peso_carcaca >= meta_peso_carcaca:
+        print("\n" + "=" * 50)
+        print("ANÁLISE DA IA".center(50))
+        print("=" * 50)
+        print("  ✔ Peso de carcaça atingiu ou superou a meta.")
+        print("  Nenhuma intervenção necessária.")
+        print("=" * 50)
         return
 
     diferenca_meta = meta_peso_carcaca - peso_carcaca
@@ -344,9 +409,12 @@ def analise_ia(peso_carcaca, raca_boi, meta_peso_carcaca,categoria):
         )
 
         # Imprime o bloco formatado direto pela função
-        print("\n===== ANÁLISE DA IA =====")
+        print("\n" + "=" * 50)
+        print("ANÁLISE DA IA".center(50))
+        print("Gerada com base nos dados reais do lote.".center(50))
+        print("=" * 50)
         print(resposta.text)
-        print("===========================")
+        print("=" * 50)
 
     except Exception as e:
         print(f"Não foi possível gerar a análise da IA: {e}")
@@ -360,9 +428,12 @@ def menu_historico(usuario_id):
     if not historico:
         print("Nenhum lote registrado ainda.")
         return
-    print("\n===== HISTÓRICO DE LOTES =====")
+    print("\n" + "=" * 50)
+    print("HISTÓRICO DE LOTES".center(50))
+    print("=" * 50)
     for raca, categoria, quantidade, lucro_liquido, data in historico:
-        print(f"{data} — {quantidade}x {raca} ({categoria}) — Lucro líquido: R$ {lucro_liquido:.2f}")
+        print(f"  {data} — {quantidade}x {raca} ({categoria}) — Lucro: R$ {lucro_liquido:.2f}")
+    print("=" * 50)
 
 #-------------------------------------------------------------------------------------------------------
 
